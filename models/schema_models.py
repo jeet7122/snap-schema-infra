@@ -43,8 +43,20 @@ class SchemaRequest(BaseModel):
     user_input: str
     
 
+"""
+Requirement Analysis Model for gathering requirements for structured result
+"""   
 class RequirementAnalysis(BaseModel):
     entities: list[str]
     features: list[str]
+    
+class RelationShip(BaseModel):
+    source: str
+    target: str
+    relationship_type: str
+    foreign_key: str
+
+class RelationShipPlan(BaseModel):
+    relationships: list[RelationShip]
     
     
