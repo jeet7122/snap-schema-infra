@@ -1,6 +1,9 @@
 from pydantic import BaseModel
 from typing import List
 
+"""
+Model for holding metadata about output from LLM
+"""
 
 class MetaData(BaseModel):
     total_tables: int
@@ -38,5 +41,10 @@ API Request Model for users
 """    
 class SchemaRequest(BaseModel):
     user_input: str
+    
+
+class RequirementAnalysis(BaseModel):
+    entities: list[str]
+    features: list[str]
     
     
