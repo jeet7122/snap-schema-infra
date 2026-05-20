@@ -1,6 +1,11 @@
 from pydantic import BaseModel
 from typing import List
 
+
+class MetaData(BaseModel):
+    total_tables: int
+    total_indexes: int
+
 """
 Model for holding extra fields/suggestion from LLM
 """
@@ -24,6 +29,8 @@ API Response Model for users
 """
 class SchemaResponse(BaseModel):
     tables: List[TableSchema]
+    compiled_sql: str | None = None
+    metadata: MetaData | None = None
    
     
 """
