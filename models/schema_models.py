@@ -17,7 +17,7 @@ class TableSchema(BaseModel):
     table_name: str
     sql_query: str
     indexes: List[str]
-    extras: List[str]
+    extras: List[ExtraField]
     
 """
 API Response Model for users
