@@ -1,6 +1,19 @@
 from pydantic import BaseModel
 from typing import List
 
+
+
+class DeterministicWarning(BaseModel):
+    validator: str
+    issue: str
+    recommendation: str
+
+
+class ValidationReport(BaseModel):
+    warnings: list[DeterministicWarning]
+
+
+
 """
 Model for holding metadata about output from LLM
 """
@@ -16,11 +29,18 @@ Model for holding extra fields/suggestion from LLM
 class ExtraField(BaseModel):
     columnName: str
     reason: str
+    
+class ArchitectWarning(BaseModel):
+    issue: str
+    recommendation: str
+
+class ArchitectureReview(BaseModel):
+    warnings: list[ArchitectWarning]
+
 
 """
 Model for holding TableSchema from LLM
 """
-
 class TableSchema(BaseModel):
     table_name: str
     sql_query: str
@@ -34,6 +54,8 @@ class SchemaResponse(BaseModel):
     tables: List[TableSchema]
     compiled_sql: str | None = None
     metadata: MetaData | None = None
+    architecture_review: ArchitectureReview | None = None
+    deterministic_warnings: list[DeterministicWarning] | None = None
    
     
 """
@@ -58,5 +80,6 @@ class RelationShip(BaseModel):
 
 class RelationShipPlan(BaseModel):
     relationships: list[RelationShip]
+
     
     

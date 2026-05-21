@@ -1,8 +1,10 @@
 from agents.schema_agent import generate_schema
 from agents.requirements_analysis_agent import analyze_requirements
 from agents.relationship_agent import generate_relationships
+from agents.review_agent import review_architecture
 from models.schema_models import SchemaResponse
 from utils.schema_validator import validate_schema
+from utils.run_validators import run_validators
 from utils.sql_compiler import compile_sql
 from utils.metadata_builder import build_metadata
 
@@ -25,10 +27,18 @@ def generate_schema_service(user_input: str):
     schema = SchemaResponse(**schema_result)
     validate_schema(schema)
     
-    # STEP 5 — SQL Compilation
+    # STEP 5: Determinitic Validators
+    deterministic_warnings = run_validators(schema)
+    schema.deterministic_warnings = deterministic_warnings
+    
+    # STEP 6: AI Review Architecture
+    review = review_architecture(schema.model_dump())
+    schema.architecture_review = review
+    
+    # STEP 6: SQL Compilation
     schema.compiled_sql = compile_sql(schema)
     
-    # STEP 6: Metadata Generation
+    # STEP 7: Metadata Generation
     schema.metadata = build_metadata(schema)
     
     return schema.model_dump()
