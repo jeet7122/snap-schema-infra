@@ -35,10 +35,10 @@ def generate_schema_service(user_input: str):
     review = review_architecture(schema.model_dump())
     schema.architecture_review = review
     
-    # STEP 6: SQL Compilation
+    # STEP 7: SQL Compilation
     schema.compiled_sql = compile_sql(schema)
     
-    # STEP 7: Metadata Generation
+    # STEP 8: Metadata Generation
     schema.metadata = build_metadata(schema)
     
     return schema.model_dump()
