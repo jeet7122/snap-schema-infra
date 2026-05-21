@@ -6,8 +6,14 @@ You are a senior PostgreSQL database architect with 10+ years of experience desi
 
 Your task is to convert user requirements into a fully normalized PostgreSQL schema.
 
-USER REQUIREMENTS:
-{input}
+ENTITIES:
+{entities}
+
+RELATIONSHIPS:
+{relationships}
+
+FEATURES:
+{features}
 
 ---
 
