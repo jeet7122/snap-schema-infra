@@ -2,24 +2,40 @@
 Centralized validator execution pipeline responsible for orchestrating
 all deterministic schema validation modules.
 
-This utility acts as the aggregation layer for rule-based validators
-used throughout the schema quality assurance workflow.
+This module executes validators concurrently using worker threads
+to improve scalability, fault isolation, and execution throughput.
 
-The validator pipeline executes multiple specialized validators:
-- duplicate index detection
+The validator pipeline aggregates warnings generated from:
+- duplicate index analysis
 - foreign key index validation
 - timestamp validation
 - enum modeling analysis
 - composite index recommendations
 
-Each validator returns structured `DeterministicWarning` objects
-that are aggregated into a unified validation result set.
+Architecture Features:
+- concurrent validator execution
+- isolated validator failures
+- registry-based validator management
+- centralized warning aggregation
+- extensible validation framework
 
 Used by:
 - schema_service
 - validation pipeline
 - auto-fix engine
 """
+
+import logging
+
+from concurrent.futures import (
+    ThreadPoolExecutor,
+    as_completed
+)
+
+from models.schema_models import (
+    SchemaResponse,
+    DeterministicWarning
+)
 
 from utils.validators.duplicate_index_validator import (
     validate_duplicate_indexes
@@ -42,13 +58,42 @@ from utils.validators.composite_index_validator import (
 )
 
 
-def run_validators(schema):
-    """
-    Execute all deterministic schema validators.
+# ================================================================
+# Configure module-level logger for validator execution tracing.
+# ================================================================
 
-    This method orchestrates the complete deterministic validation
-    pipeline by sequentially executing all registered validators
-    and aggregating their warning outputs.
+logger = logging.getLogger(__name__)
+
+
+# ================================================================
+# Centralized validator registry.
+# ---------------------------------------------------------------
+# New validators can be added here without modifying the core
+# execution pipeline.
+# ================================================================
+
+VALIDATORS = [
+    validate_duplicate_indexes,
+    validate_foreign_key_indexes,
+    validate_timestamps,
+    validate_enum_modeling,
+    validate_composite_indexes,
+]
+
+
+def run_validators(
+    schema: SchemaResponse
+) -> list[DeterministicWarning]:
+    """
+    Execute all deterministic validators concurrently.
+
+    This method orchestrates the complete validation pipeline
+    using thread-based parallel execution.
+
+    Each validator:
+    - runs independently
+    - operates in isolation
+    - cannot break the overall pipeline on failure
 
     Executed Validators:
         - Duplicate Index Validator
@@ -64,72 +109,81 @@ def run_validators(schema):
 
     Returns:
         list[DeterministicWarning]:
-            Aggregated list of validation warnings generated
-            across all validator modules.
+            Aggregated validation warnings generated across
+            all validators.
 
     Used by:
         - generate_schema_service()
 
     Notes:
-        - Validators are executed sequentially.
-        - Validation pipeline is modular and easily extensible.
-        - New validators can be integrated with minimal changes.
-        - Validators are deterministic and rule-based.
-        - Validation warnings are advisory unless enforced
-          by downstream systems.
+        - Validators execute concurrently using worker threads.
+        - Failures are isolated per validator.
+        - Validation pipeline is modular and extensible.
+        - ThreadPoolExecutor is suitable because validators are:
+            - lightweight
+            - stateless
+            - read-only
+            - I/O-light
     """
 
-    warnings = []
+    warnings: list[DeterministicWarning] = []
 
     # ============================================================
-    # Duplicate Index Validation
-    # ------------------------------------------------------------
-    # Detect redundant unique index definitions.
+    # Execute validators concurrently using worker threads.
     # ============================================================
 
-    warnings.extend(
-        validate_duplicate_indexes(schema)
-    )
+    with ThreadPoolExecutor(
+        max_workers=len(VALIDATORS)
+    ) as executor:
+
+        # ========================================================
+        # Submit validators for parallel execution.
+        # ========================================================
+
+        future_map = {
+            executor.submit(
+                validator,
+                schema
+            ): validator.__name__
+            for validator in VALIDATORS
+        }
+
+        # ========================================================
+        # Process validator results as they complete.
+        # ========================================================
+
+        for future in as_completed(future_map):
+
+            validator_name = future_map[future]
+
+            try:
+
+                result = future.result()
+
+                if result:
+
+                    warnings.extend(result)
+
+                    logger.info(
+                        f"[VALIDATOR_SUCCESS] "
+                        f"{validator_name} generated "
+                        f"{len(result)} warnings."
+                    )
+
+            # ====================================================
+            # Isolate validator failures to prevent entire
+            # validation pipeline from failing.
+            # ====================================================
+
+            except Exception as ex:
+
+                logger.exception(
+                    f"[VALIDATOR_FAILURE] "
+                    f"{validator_name} failed: {str(ex)}"
+                )
 
     # ============================================================
-    # Foreign Key Index Validation
-    # ------------------------------------------------------------
-    # Ensure foreign key columns are properly indexed.
+    # Return aggregated validation warnings.
     # ============================================================
 
-    warnings.extend(
-        validate_foreign_key_indexes(schema)
-    )
-
-    # ============================================================
-    # Timestamp Validation
-    # ------------------------------------------------------------
-    # Ensure standard audit timestamp fields exist.
-    # ============================================================
-
-    warnings.extend(
-        validate_timestamps(schema)
-    )
-
-    # ============================================================
-    # Enum Modeling Validation
-    # ------------------------------------------------------------
-    # Detect potential enum-style lookup table patterns.
-    # ============================================================
-
-    warnings.extend(
-        validate_enum_modeling(schema)
-    )
-
-    # ============================================================
-    # Composite Index Validation
-    # ------------------------------------------------------------
-    # Recommend composite indexes for query optimization.
-    # ============================================================
-
-    warnings.extend(
-        validate_composite_indexes(schema)
-    )
-
-    # Return aggregated validation warnings
     return warnings
