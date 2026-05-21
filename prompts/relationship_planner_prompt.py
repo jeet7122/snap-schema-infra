@@ -9,10 +9,23 @@ Based on the extracted entities and features,
 determine the relationships between entities.
 
 RULES:
+
 - Use normalized relational modeling
-- Prefer many_to_one, one_to_many, many_to_many
+- Prefer:
+  - many_to_one
+  - one_to_many
+  - many_to_many
 - Generate realistic foreign key names
 - Only generate meaningful relationships
+- Do NOT generate relationships for:
+  - statuses
+  - enums
+  - roles
+  - categories
+  - permissions
+- Assume role-based systems should use:
+  - shared users table
+  - role field with CHECK constraints
 
 INPUT:
 
