@@ -2,6 +2,16 @@ from pydantic import BaseModel
 from typing import List
 
 
+class AutoFix(BaseModel):
+    issue: str
+    fix_sql: str
+
+
+class AutoFixReport(BaseModel):
+    fixes: list[AutoFix]
+
+    
+    
 
 class DeterministicWarning(BaseModel):
     validator: str
@@ -56,6 +66,7 @@ class SchemaResponse(BaseModel):
     metadata: MetaData | None = None
     architecture_review: ArchitectureReview | None = None
     deterministic_warnings: list[DeterministicWarning] | None = None
+    autofixes: list[AutoFix] | None = None
    
     
 """
@@ -80,6 +91,5 @@ class RelationShip(BaseModel):
 
 class RelationShipPlan(BaseModel):
     relationships: list[RelationShip]
-
     
     

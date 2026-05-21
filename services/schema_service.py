@@ -5,6 +5,7 @@ from agents.review_agent import review_architecture
 from models.schema_models import SchemaResponse
 from utils.schema_validator import validate_schema
 from utils.run_validators import run_validators
+from utils.autofix_engine import generate_auto_fixes
 from utils.sql_compiler import compile_sql
 from utils.metadata_builder import build_metadata
 
@@ -30,6 +31,10 @@ def generate_schema_service(user_input: str):
     # STEP 5: Determinitic Validators
     deterministic_warnings = run_validators(schema)
     schema.deterministic_warnings = deterministic_warnings
+    
+    # STEP 6: Auto Fixes
+    auto_fixes = generate_auto_fixes(schema=schema, warnings=deterministic_warnings)
+    schema.autofixes = auto_fixes
     
     # STEP 6: AI Review Architecture
     review = review_architecture(schema.model_dump())
